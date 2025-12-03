@@ -1,109 +1,85 @@
 package com.example.sleepwell
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.*
 import androidx.fragment.app.Fragment
+import com.google.android.material.slider.Slider
 
-class CalculatorFragment : Fragment() {
+class CalculatorFragment : Fragment(R.layout.fragment_calculator) {
 
-    private lateinit var etUsia: EditText
-    private lateinit var etDurasiTidur: EditText
-    private lateinit var etAktivitasFisik: EditText
-    private lateinit var etTinggiBadan: EditText
-    private lateinit var etBeratBadan: EditText
-    private lateinit var spinnerJenisKelamin: Spinner
-    private lateinit var seekBarStres: SeekBar
-    private lateinit var tvStresValue: TextView
-    private lateinit var btnSubmit: Button
+    private lateinit var onnxHelper: ONNXModelHelper
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        val view = inflater.inflate(R.layout.fragment_calculator, container, false)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        // Initialize views
-        etUsia = view.findViewById(R.id.etUsia)
-        etDurasiTidur = view.findViewById(R.id.etDurasiTidur)
-        etAktivitasFisik = view.findViewById(R.id.etAktivitasFisik)
-        etTinggiBadan = view.findViewById(R.id.etTinggiBadan)
-        etBeratBadan = view.findViewById(R.id.etBeratBadan)
-        spinnerJenisKelamin = view.findViewById(R.id.spinnerJenisKelamin)
-        seekBarStres = view.findViewById(R.id.seekBarStres)
-        tvStresValue = view.findViewById(R.id.tvStresValue)
-        btnSubmit = view.findViewById(R.id.btnSubmit)
-
-        // Setup Spinner
-        val jenisKelaminAdapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            arrayOf("Pilih Jenis Kelamin", "Male", "Female")
-        )
-        jenisKelaminAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinnerJenisKelamin.adapter = jenisKelaminAdapter
-
-        // Setup SeekBar
-        seekBarStres.max = 9 // 0-9 untuk represent 1-10
-        seekBarStres.progress = 4 // Default value 5
-        tvStresValue.text = "5"
-
-        seekBarStres.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                tvStresValue.text = (progress + 1).toString()
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        // Submit button
-        btnSubmit.setOnClickListener {
-            if (validateForm()) {
-                val formData = HashMap<String, Any>()
-                formData["usia"] = etUsia.text.toString().toInt()
-                formData["jenisKelamin"] = spinnerJenisKelamin.selectedItem.toString()
-                formData["durasiTidur"] = etDurasiTidur.text.toString().toFloat()
-                formData["aktivitasFisik"] = etAktivitasFisik.text.toString().toInt()
-                formData["tinggiBadan"] = etTinggiBadan.text.toString().toInt()
-                formData["beratBadan"] = etBeratBadan.text.toString().toInt()
-                formData["tingkatStres"] = seekBarStres.progress + 1
-
-                (activity as MainActivity).showResultFragment(formData)
-            }
+        // Inisialisasi Helper
+        try {
+            onnxHelper = ONNXModelHelper(requireContext())
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error memuat model: ${e.message}", Toast.LENGTH_LONG).show()
         }
 
-        return view
+        // Setup Spinner Gender
+        val spinnerGender = view.findViewById<Spinner>(R.id.spinnerGender)
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, arrayOf("Male", "Female"))
+        spinnerGender.adapter = adapter
+
+        // Setup Tombol Prediksi
+        view.findViewById<Button>(R.id.btnPrediksi).setOnClickListener {
+            lakukanPrediksi(view)
+        }
     }
 
-    private fun validateForm(): Boolean {
-        if (etUsia.text.isEmpty()) {
-            Toast.makeText(context, "Masukkan usia", Toast.LENGTH_SHORT).show()
-            return false
+    private fun lakukanPrediksi(view: View) {
+        // 1. Ambil Input dari UI
+        val etUsia = view.findViewById<EditText>(R.id.etUsia)
+        val etTinggi = view.findViewById<EditText>(R.id.etTinggi)
+        val etBerat = view.findViewById<EditText>(R.id.etBerat)
+        val etTidur = view.findViewById<EditText>(R.id.etTidur)
+        val etFisik = view.findViewById<EditText>(R.id.etFisik)
+        val sliderStres = view.findViewById<Slider>(R.id.sliderStres)
+        val spinnerGender = view.findViewById<Spinner>(R.id.spinnerGender)
+
+        // 2. Validasi (Cek jika kosong)
+        if (etUsia.text.isEmpty() || etTinggi.text.isEmpty() || etBerat.text.isEmpty() ||
+            etTidur.text.isEmpty() || etFisik.text.isEmpty()) {
+            Toast.makeText(context, "Mohon lengkapi semua data!", Toast.LENGTH_SHORT).show()
+            return
         }
-        if (etDurasiTidur.text.isEmpty()) {
-            Toast.makeText(context, "Masukkan durasi tidur", Toast.LENGTH_SHORT).show()
-            return false
+
+        try {
+            // 3. Konversi Data
+            val usia = etUsia.text.toString().toFloat()
+            val tinggi = etTinggi.text.toString().toFloat()
+            val berat = etBerat.text.toString().toFloat()
+            val tidur = etTidur.text.toString().toFloat()
+            val fisik = etFisik.text.toString().toFloat()
+            val stres = sliderStres.value
+            val gender = spinnerGender.selectedItem.toString()
+
+            // 4. Panggil ONNX Helper
+            val hasilPrediksi = onnxHelper.predict(
+                usia = usia,
+                durasiTidur = tidur,
+                aktivitasFisik = fisik,
+                tingkatStres = stres,
+                gender = gender,
+                tinggiBadan = tinggi,
+                beratBadan = berat
+            )
+
+            // 5. Kirim Data ke ResultFragment via MainActivity
+            val data = hashMapOf<String, Any>(
+                "hasil" to hasilPrediksi,
+                "nama" to "User" // Bisa ditambahkan nama jika ada inputnya
+            )
+
+            (activity as? MainActivity)?.showResultFragment(data)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, "Gagal memproses: ${e.message}", Toast.LENGTH_LONG).show()
         }
-        if (etAktivitasFisik.text.isEmpty()) {
-            Toast.makeText(context, "Masukkan aktivitas fisik", Toast.LENGTH_SHORT).show()
-            return false
-        }
-        if (etTinggiBadan.text.isEmpty()) {
-            Toast.makeText(context, "Masukkan tinggi badan", Toast.LENGTH_SHORT).show()
-            return false
-        }
-        if (etBeratBadan.text.isEmpty()) {
-            Toast.makeText(context, "Masukkan berat badan", Toast.LENGTH_SHORT).show()
-            return false
-        }
-        if (spinnerJenisKelamin.selectedItemPosition == 0) {
-            Toast.makeText(context, "Pilih jenis kelamin", Toast.LENGTH_SHORT).show()
-            return false
-        }
-        return true
     }
 }
