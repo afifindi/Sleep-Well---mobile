@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">Sleep Well</string>
+
+    <!-- Tab Names -->
+    <string name="tab_informasi">INFORMASI</string>
+    <string name="tab_kalkulator">KALKULATOR</string>
+    <string name="tab_history">HISTORY</string>
+
+    <!-- Form Labels -->
+    <string name="label_usia">USIA</string>
+    <string name="label_durasi_tidur">DURASI TIDUR</string>
+    <string name="label_aktivitas_fisik">AKTIVITAS FISIK</string>
+    <string name="label_tinggi_badan">TINGGI BADAN</string>
+    <string name="label_berat_badan">BERAT BADAN</string>
+    <string name="label_jenis_kelamin">JENIS KELAMIN</string>
+    <string name="label_tingkat_stres">TIKAT STRES</string>
+
+    <!-- Hints -->
+    <string name="hint_usia">MASUKKAN USIA ANDA</string>
+    <string name="hint_durasi_tidur">MASUKKAN DURASI TIDUR ANDA</string>
+    <string name="hint_aktivitas_fisik">BERAPA LAMA ANDA OLAHRAGA</string>
+    <string name="hint_tinggi_badan">TINGGI BADAN (CM)</string>
+    <string name="hint_berat_badan">BERAT BADAN (KG)</string>
+
+    <!-- Buttons -->
+    <string name="btn_submit">Submit</string>
+
+    <!-- Result -->
+    <string name="result_title">Kualitas Tidur Anda</string>
+    <string name="result_placeholder">Hasil akan ditampilkan di sini</string>
+    <string name="result_onnx_note">Integrasi dengan model ONNX</string>
+</resources>
