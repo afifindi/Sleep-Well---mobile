@@ -17,6 +17,10 @@ class ONNXModelHelper(context: Context) {
         ortEnvironment.createSession(modelBytes)
     }
 
+    // Mapping Output Model (Index 0-5) ke Skor Asli (4-9)
+    // Sesuai dengan LabelEncoder di Python: {0: 4, 1: 5, 2: 6, 3: 7, 4: 8, 5: 9}
+    private val SCORES_MAPPING = intArrayOf(4, 5, 6, 7, 8, 9)
+
     fun predict(
         usia: Float,
         durasiTidur: Float,
@@ -35,7 +39,7 @@ class ONNXModelHelper(context: Context) {
         // B. Hitung BMI & Encode Kategorinya
         // Rumus BMI = Berat(kg) / (Tinggi(m) * Tinggi(m))
         val tinggiMeter = tinggiBadan / 100f
-        val bmi = beratBadan / (tinggiMeter * tinggiMeter)
+        val bmi = if (tinggiMeter > 0) beratBadan / (tinggiMeter * tinggiMeter) else 0f
 
         var isObese = 0.0f
         var isOverweight = 0.0f
@@ -62,35 +66,50 @@ class ONNXModelHelper(context: Context) {
 
         // --- 2. INFERENCE (Menjalankan Model) ---
 
-        // Buat Tensor input [1 baris, 7 kolom]
-        val inputName = ortSession.inputNames.iterator().next()
-        val shape = longArrayOf(1, 7)
-        val floatBuffer = FloatBuffer.wrap(inputData)
-        val inputTensor = OnnxTensor.createTensor(ortEnvironment, floatBuffer, shape)
+        try {
+            // Buat Tensor input [1 baris, 7 kolom]
+            val inputName = ortSession.inputNames.iterator().next()
+            val shape = longArrayOf(1, 7)
+            val floatBuffer = FloatBuffer.wrap(inputData)
+            val inputTensor = OnnxTensor.createTensor(ortEnvironment, floatBuffer, shape)
 
-        // Jalankan Prediksi
-        val results = ortSession.run(Collections.singletonMap(inputName, inputTensor))
+            // Jalankan Prediksi
+            val results = ortSession.run(Collections.singletonMap(inputName, inputTensor))
 
-        // Ambil hasil (Output Random Forest biasanya berupa Label Int64)
-        val outputTensor = results[0] as OnnxTensor
-        val predictionLabel = (outputTensor.value as LongArray)[0] // Mengambil hasil pertama
+            // Ambil hasil (Output berupa Index Kelas, misal: 5)
+            val outputTensor = results[0] as OnnxTensor
+            val predictionIndex = (outputTensor.value as LongArray)[0] // Mengambil hasil pertama
 
-        results.close() // Bersihkan memori
+            results.close() // Bersihkan memori
 
-        // --- 3. MAPPING HASIL (Angka -> Kata-kata) ---
-        return mapLabelToString(predictionLabel)
+            // --- 3. MAPPING HASIL (Index -> Skor Asli -> Kata-kata) ---
+            return mapIndexToString(predictionIndex)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return "Error: ${e.message}"
+        }
     }
 
-    private fun mapLabelToString(label: Long): String {
-        // Label ini berdasarkan data 'Quality of Sleep' (Skala 1-10 di dataset asli)
-        return when (label.toInt()) {
-            in 1..4 -> "Buruk (Skor: $label)"
-            5 -> "Kurang (Skor: 5)"
-            6 -> "Cukup (Skor: 6)"
-            7 -> "Baik (Skor: 7)"
-            8 -> "Sangat Baik (Skor: 8)"
-            in 9..10 -> "Sempurna (Skor: $label)"
-            else -> "Tidak Diketahui ($label)"
+    private fun mapIndexToString(index: Long): String {
+        val idx = index.toInt()
+
+        // Pastikan index tidak keluar dari array mapping
+        if (idx < 0 || idx >= SCORES_MAPPING.size) {
+            return "Tidak Diketahui (Index: $idx)"
+        }
+
+        // Ambil skor asli dari mapping
+        val realScore = SCORES_MAPPING[idx]
+
+        // Berikan label berdasarkan skor asli (Skala 1-10)
+        return when (realScore) {
+            in 0..5 -> "Kurang (Skor: $realScore/10)"  // Skor 4, 5
+            6 -> "Cukup (Skor: 6/10)"
+            7 -> "Baik (Skor: 7/10)"
+            8 -> "Sangat Baik (Skor: 8/10)"
+            9 -> "Sempurna (Skor: 9/10)"
+            else -> "Skor: $realScore/10"
         }
     }
 }
