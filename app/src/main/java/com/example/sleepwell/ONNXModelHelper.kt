@@ -12,9 +12,10 @@ class ONNXModelHelper(context: Context) {
     private val ortEnvironment = OrtEnvironment.getEnvironment()
 
     // Membaca model dari folder assets saat kelas ini dibuat
-    private val ortSession = ortEnvironment.createSession(
-        context.assets.open("sleep_model.onnx").readBytes()
-    )
+    private val ortSession by lazy {
+        val modelBytes = context.assets.open("sleep_model.onnx").readBytes()
+        ortEnvironment.createSession(modelBytes)
+    }
 
     fun predict(
         usia: Float,

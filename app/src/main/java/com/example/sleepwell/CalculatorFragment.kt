@@ -48,6 +48,11 @@ class CalculatorFragment : Fragment(R.layout.fragment_calculator) {
             return
         }
 
+        if (!::onnxHelper.isInitialized) {
+            Toast.makeText(context, "Model belum siap. Coba restart aplikasi.", Toast.LENGTH_LONG).show()
+            return
+        }
+
         try {
             // 3. Konversi Data
             val usia = etUsia.text.toString().toFloat()
@@ -80,6 +85,7 @@ class CalculatorFragment : Fragment(R.layout.fragment_calculator) {
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, "Gagal memproses: ${e.message}", Toast.LENGTH_LONG).show()
+            print("Gagal memproses: ${e.message}")
         }
     }
 }
