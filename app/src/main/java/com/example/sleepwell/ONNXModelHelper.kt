@@ -55,13 +55,13 @@ class ONNXModelHelper(context: Context) {
         // C. Susun Array Input (URUTAN HARUS SAMA PERSIS DENGAN PYTHON!)
         // Python Order: ['Age', 'Sleep Duration', 'Physical Activity Level', 'Stress Level', 'Gender_Male', 'BMI Category_Obese', 'BMI Category_Overweight']
         val inputData = floatArrayOf(
-            usia,
-            durasiTidur,
-            aktivitasFisik,
-            tingkatStres,
-            isMale,
-            isObese,
-            isOverweight
+            usia,             // 1. Age (Fitur pertama)
+            durasiTidur,      // 2. Sleep Duration
+            aktivitasFisik,   // 3. Physical Activity Level
+            tingkatStres,     // 4. Stress Level
+            isMale,           // 5. Gender Male
+            isObese,          // 6. BMI Obese
+            isOverweight      // 7. BMI Overweight
         )
 
         // --- 2. INFERENCE (Menjalankan Model) ---
